@@ -1,16 +1,30 @@
-/*
- * monitor.c - Multi-Container Memory Monitor (Linux Kernel Module)
- *
- * Provided boilerplate:
- *   - device registration and teardown
+
+
+
+
+/*   - device registration and teardown
  *   - timer setup
- *   - RSS helper
+ *   - WRSS helper
  *   - soft-limit and hard-limit event helpers
  *   - ioctl dispatch shell
  *
  * YOUR WORK: Fill in all sections marked // TODO.
- */
 
+ */
+   // for copy_from_user
+
+    // for printk
+#include <linux/errno.h>     // for EINVAL
+#include "monitor_ioctl.h"
+#include <linux/spinlock.h>
+#include <linux/list.h>
+#include <linux/mutex.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
+#include <linux/sched/signal.h>
+#include <linux/mm.h>
+#include <linux/mm.h>
+#include <linux/sched/mm.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/fs.h>
@@ -31,7 +45,8 @@
 #define DEVICE_NAME "container_monitor"
 #define CHECK_INTERVAL_SEC 1
 
-/* ==============================================================
+/* =
+=============================================================
  * TODO 1: Define your linked-list node struct.
  *
  * Requirements:
@@ -52,24 +67,39 @@
  * justify the choice in terms of the code paths you implemented.
  * ============================================================== */
 
+#include <linux/list.h>
+#include <linux/spinlock.h>
 
+struct monitored_proc {
+    pid_t pid;
+    unsigned long soft_limit;
+    unsigned long hard_limit;
+    int warned;
+
+    struct list_head list;
+};
+
+
+static LIST_HEAD(proc_list);
+static struct task_struct *monitor_thread;
 /* --- Provided: internal device / timer state --- */
 static struct timer_list monitor_timer;
 static dev_t dev_num;
 static struct cdev c_dev;
 static struct class *cl;
-
+static spinlock_t proc_lock;
 /* ---------------------------------------------------------------
  * Provided: RSS Helper
  *
  * Returns the Resident Set Size in bytes for the given PID,
  * or -1 if the task no longer exists.
  * --------------------------------------------------------------- */
-static long get_rss_bytes(pid_t pid)
+__attribute__((unused))
+static long  get_rss_bytes(pid_t pid)
 {
     struct task_struct *task;
     struct mm_struct *mm;
-    long rss_pages = 0;
+   long  rss_pages = 0;
 
     rcu_read_lock();
     task = pid_task(find_vpid(pid), PIDTYPE_PID);
@@ -95,6 +125,7 @@ static long get_rss_bytes(pid_t pid)
  *
  * Log a warning when a process exceeds the soft limit.
  * --------------------------------------------------------------- */
+__attribute__((unused))
 static void log_soft_limit_event(const char *container_id,
                                  pid_t pid,
                                  unsigned long limit_bytes,
@@ -106,10 +137,12 @@ static void log_soft_limit_event(const char *container_id,
 }
 
 /* ---------------------------------------------------------------
- * Provided: hard-limit helper
+ * Provided: hard-
+limit helper
  *
  * Kill a process when it exceeds the hard limit.
  * --------------------------------------------------------------- */
+__attribute__((unused))
 static void kill_process(const char *container_id,
                          pid_t pid,
                          unsigned long limit_bytes,
@@ -133,9 +166,58 @@ static void kill_process(const char *container_id,
  * --------------------------------------------------------------- */
 static void timer_callback(struct timer_list *t)
 {
-    /* ==============================================================
-     * TODO 3: Implement periodic monitoring.
-     *
+    struct monitored_proc *p;
+    struct monitored_proc *tmp;
+    long rss;
+
+    printk(KERN_INFO "TIMER RUNNING\n");
+
+    spin_lock(&proc_lock);
+
+    list_for_each_entry_safe(p, tmp, &proc_list, list) {
+
+        struct task_struct *task;
+
+        // Check if process exists
+        task = pid_task(find_vpid(p->pid), PIDTYPE_PID);
+
+        if (!task) {
+            printk(KERN_INFO "Removing dead process pid=%d\n", p->pid);
+            list_del(&p->list);
+            kfree(p);
+            continue;
+        }
+
+        printk(KERN_INFO "CHECKING PROCESS pid=%d\n", p->pid);
+
+        rss = get_rss_bytes(p->pid);
+
+        if (rss < 0)
+            continue;
+
+        printk(KERN_INFO "LIMIT CHECK pid=%d rss=%ld\n", p->pid, rss);
+
+        // SOFT LIMIT
+        if (rss > p->soft_limit && !p->warned) {
+            printk(KERN_INFO "[container_monitor] SOFT LIMIT exceeded: pid=%d rss=%ld\n", p->pid, rss);
+            p->warned = 1;
+        }
+
+        // HARD LIMIT
+        if (rss > p->hard_limit) {
+            printk(KERN_INFO "[container_monitor] HARD LIMIT exceeded: pid=%d rss=%ld — killing\n", p->pid, rss);
+            send_sig(SIGKILL, task, 0);
+
+            list_del(&p->list);
+            kfree(p);
+        }
+    }
+
+    spin_unlock(&proc_lock);
+
+    mod_timer(&monitor_timer, jiffies + CHECK_INTERVAL_SEC * HZ);
+}/*     * TODO 3: Implement periodic monitoring.
+     *$
      * Requirements:
      *   - iterate through tracked entries safely
      *   - remove entries for exited processes
@@ -144,18 +226,18 @@ static void timer_callback(struct timer_list *t)
      *   - avoid use-after-free while deleting during iteration
      * ============================================================== */
 
-    mod_timer(&monitor_timer, jiffies + CHECK_INTERVAL_SEC * HZ);
-}
 
 /* ---------------------------------------------------------------
  * IOCTL Handler
- *
+ *     *   - emit soft-limit warning once per entry
+     *   - enforce hard limit and then remove the entry
+
  * Supported operations:
  *   - register a PID with soft + hard limits
  *   - unregister a PID when the runtime no longer needs tracking
  * --------------------------------------------------------------- */
 static long monitor_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
-{
+{   printk(KERN_INFO "IOCTL CALLED\n");
     struct monitor_request req;
 
     (void)f;
@@ -163,13 +245,31 @@ static long monitor_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     if (cmd != MONITOR_REGISTER && cmd != MONITOR_UNREGISTER)
         return -EINVAL;
 
-    if (copy_from_user(&req, (struct monitor_request __user *)arg, sizeof(req)))
-        return -EFAULT;
+    if (copy_from_user(&req, (struct monitor_request __user *)arg, sizeof(req))) {
+    return -EFAULT;
+}
+        
 
     if (cmd == MONITOR_REGISTER) {
+        printk(KERN_INFO "IOCTL REGISTER CALLED\n");
         printk(KERN_INFO
                "[container_monitor] Registering container=%s pid=%d soft=%lu hard=%lu\n",
                req.container_id, req.pid, req.soft_limit_bytes, req.hard_limit_bytes);
+       struct monitored_proc *p;
+
+p = kmalloc(sizeof(*p), GFP_KERNEL);
+if (!p)
+    return -ENOMEM;
+
+p->pid = req.pid;
+p->soft_limit = req.soft_limit_bytes;
+p->hard_limit = req.hard_limit_bytes;
+p->warned = 0;
+INIT_LIST_HEAD(&p->list);
+/* add to list */
+spin_lock(&proc_lock);
+list_add(&p->list, &proc_list);
+spin_unlock(&proc_lock);
 
         /* ==============================================================
          * TODO 4: Add a monitored entry.
@@ -198,9 +298,9 @@ static long monitor_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
     return -ENOENT;
 }
-
 /* --- Provided: file operations --- */
-static struct file_operations fops = {
+static struct 
+file_operations fops = {
     .owner = THIS_MODULE,
     .unlocked_ioctl = monitor_ioctl,
 };
@@ -234,7 +334,7 @@ static int __init monitor_init(void)
         unregister_chrdev_region(dev_num, 1);
         return -1;
     }
-
+    spin_lock_init(&proc_lock);
     timer_setup(&monitor_timer, timer_callback, 0);
     mod_timer(&monitor_timer, jiffies + CHECK_INTERVAL_SEC * HZ);
 
