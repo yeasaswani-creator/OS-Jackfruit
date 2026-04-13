@@ -651,7 +651,7 @@ while (1) {
             dup2(pipefd[1], STDERR_FILENO);
             close(pipefd[1]);
 
-            execl("./memory_hog", "memory_hog", "--soft-mib", "20", "--hard-mib", "100", NULL);
+            execl("/memory_hog", "memory_hog", "--soft-mib", "20", "--hard-mib", "100", NULL);
 
             perror("exec failed");
             exit(1);
