@@ -44,23 +44,49 @@ Handles container startup, execution, and cleanup without leaving residual proce
 
 ## ⚙️ Build, Load & Execution Steps
 
+### 1. Build the Project
+```bash
+cd boilerplate
+make
+```
+
 ### 2. Load Kernel Module
 ```bash
 sudo insmod monitor.ko
 ls -l /dev/container_monitor
-🔹 3. Start Supervisor
+```
+
+### 3. Start Supervisor
+```bash
 sudo ./engine supervisor ./rootfs-base
-🔹 4. Prepare Container Filesystems
+```
+
+### 4. Prepare Containers
+```bash
 cp -a ./rootfs-base ./rootfs-alpha
 cp -a ./rootfs-base ./rootfs-beta
-🔹 5. Start Containers
+```
+
+### 5. Start Containers
+```bash
 sudo ./engine start alpha ./rootfs-alpha /cpu_hog
 sudo ./engine start beta ./rootfs-beta /io_pulse
-🔹 6. Inspect Containers
+```
+
+### 6. Inspect Containers
+```bash
 sudo ./engine ps
 sudo ./engine logs alpha
-🔹 7. Stop Containers & Cleanup
+```
+
+### 7. Stop Containers & Cleanup
+```bash
 sudo ./engine stop alpha
 sudo ./engine stop beta
 sudo rmmod monitor
+```
+
+
+
+
 
