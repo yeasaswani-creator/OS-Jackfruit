@@ -1,4 +1,4 @@
-#  Multi-Container Runtime System
+![supervisor_terminal_output](https://github.com/user-attachments/assets/2cd27f5b-5b18-4310-a298-87a91beb17d9)#  Multi-Container Runtime System
 
 ## Team Information
 
@@ -89,6 +89,7 @@ sudo rmmod monitor
 
 ### 1. Supervisor Startup & Container Initialization
 Shows the supervisor process launching and starting multiple containers.
+![supervisor_terminal_output](https://github.com/user-attachments/assets/bb6c1773-3ce9-4591-8268-d6945597a2ea)
 
 
 ---
