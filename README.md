@@ -88,61 +88,69 @@ sudo rmmod monitor
 ## 📸 Experimental Demonstration
 
 ### 1. Supervisor Startup & Container Initialization
-Shows the supervisor process launching and starting multiple containers.
 ![supervisor_terminal_output](https://github.com/user-attachments/assets/bb6c1773-3ce9-4591-8268-d6945597a2ea)
-
+Shows the supervisor process launching and starting multiple containers.
 
 ---
 
 ### 2. Container Listing (CLI Output)
+![container_listing](https://github.com/user-attachments/assets/4997ef6f-1062-4845-a36e-3d846cec5e4e)
+
 Displays container IDs and states using the `engine ps` command.
 
 
 ---
 
 ### 3. Kernel-Level Monitoring Output
+![kernel_monitor](https://github.com/user-attachments/assets/5cd398bc-d863-40b8-91d6-606d4f8aae81)
+
 Shows kernel module logs tracking processes and memory usage.
 
 
 ---
 
 ### 4. Container Logging Output
+![logging_out](https://github.com/user-attachments/assets/1920f426-eee7-4f86-8685-ba248da8d097)
+
 Demonstrates per-container logs being written and stored.
 
 
 ---
 
 ### 5. CPU vs IO Scheduling Behavior
+![cpu_vs_io](https://github.com/user-attachments/assets/7365b036-c43e-439b-a711-dd20bdb350a6)
+
 Shows difference in CPU usage between CPU-bound and IO-bound workloads.
 
 
 ---
 
 ### 6. CPU Hog Execution Logs
-Displays continuous CPU workload execution inside container.
+![logging_out](https://github.com/user-attachments/assets/92a17ac3-66c6-47f2-af2d-7491d6cca9ea)
 
+Displays continuous CPU workload execution inside container.
 
 ---
 
 ### 7. System Cleanup & Termination
+![cleanup_logs](https://github.com/user-attachments/assets/e55b32cf-6843-46ac-bcb8-7224cf3e53fc)
+
 Shows proper shutdown with no zombie processes.
 
 
 ---
 
-### 8. Performance Analysis Graph
-Illustrates relationship between connections and load time.
+### 8. Supervisor Request Handling
+![supervisor_requests](https://github.com/user-attachments/assets/b01c2c05-19d6-41bc-801e-bd20e5c7d73f)
 
-
----
-
-### 9. Supervisor Request Handling
 Shows supervisor receiving and processing multiple requests.
 
 
 ---
 
-### 10. Nice Values Scheduling (Priority Control)
+### 9. Nice Values Scheduling (Priority Control)
+![nice_values png](https://github.com/user-attachments/assets/2a8dc82c-9e6c-4733-ba6a-a156fba38504)
+
 Demonstrates scheduling priority using nice values.
 
 
