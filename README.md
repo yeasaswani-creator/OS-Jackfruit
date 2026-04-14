@@ -1,4 +1,3 @@
-![supervisor_terminal_output](https://github.com/user-attachments/assets/2cd27f5b-5b18-4310-a298-87a91beb17d9)#  Multi-Container Runtime System
 
 ## Team Information
 
