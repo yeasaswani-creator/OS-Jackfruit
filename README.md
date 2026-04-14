@@ -19,7 +19,7 @@ Additionally, the design integrates both user-space and kernel-space components,
 
 ---
 
-## 🚀 Core Features
+##  Core Features
 
 ### . Namespace-Based Isolation
 Containers run in independent execution environments with separate process trees and filesystem views.
@@ -84,7 +84,7 @@ sudo ./engine stop alpha
 sudo ./engine stop beta
 sudo rmmod monitor
 ```
-## 📸 Experimental Demonstration
+## Experimental Demonstration
 
 ### 1. Supervisor Startup & Container Initialization
 ![supervisor_terminal_output](https://github.com/user-attachments/assets/bb6c1773-3ce9-4591-8268-d6945597a2ea)
