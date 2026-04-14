@@ -1,6 +1,6 @@
-# 📦 Multi-Container Runtime System
+#  Multi-Container Runtime System
 
-## 👥 Team Information
+## Team Information
 
 - **Name:** SANGADALA YEASASWANI  
   **SRN:** PES2UG24CS441  
@@ -10,7 +10,7 @@
 
 ---
 
-## 📖 System Overview
+##  System Overview
 
 This project implements a lightweight container runtime for Linux systems, developed in C, with the objective of exploring key operating system concepts such as process isolation, scheduling, and kernel-level monitoring.
 
@@ -22,29 +22,29 @@ Additionally, the design integrates both user-space and kernel-space components,
 
 ## 🚀 Core Features
 
-### 🔹 Namespace-Based Isolation
+### . Namespace-Based Isolation
 Containers run in independent execution environments with separate process trees and filesystem views.
 
-### 🔹 Supervisor-Based Control
+### . Supervisor-Based Control
 A central supervisor manages all container operations and maintains system coordination.
 
-### 🔹 Per-Container Logging System
+### . Per-Container Logging System
 Each container writes output to its own log file for monitoring and debugging.
 
-### 🔹 Kernel-Level Monitoring (LKM)
+### . Kernel-Level Monitoring (LKM)
 A Loadable Kernel Module tracks memory usage and enforces limits.
 
-### 🔹 Workload Simulation
+### . Workload Simulation
 Includes CPU-bound (`cpu_hog`) and I/O-bound (`io_pulse`) workloads for scheduling analysis.
 
-### 🔹 Complete Lifecycle Management
+### . Complete Lifecycle Management
 Handles container startup, execution, and cleanup without leaving residual processes.
 
 ---
 
 ## ⚙️ Build, Load & Execution Steps
 
-### 🔹 1. Build the Project
+### . 1. Build the Project
 ```bash
 cd boilerplate
 make
