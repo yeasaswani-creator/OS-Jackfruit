@@ -89,61 +89,61 @@ sudo rmmod monitor
 
 ### 1. Supervisor Startup & Container Initialization
 Shows the supervisor process launching and starting multiple containers.
-![Supervisor Start](screenshots/supervisor_start.png)
+
 
 ---
 
 ### 2. Container Listing (CLI Output)
 Displays container IDs and states using the `engine ps` command.
-![Container Listing](screenshots/container_listing.png)
+
 
 ---
 
 ### 3. Kernel-Level Monitoring Output
 Shows kernel module logs tracking processes and memory usage.
-![Kernel Monitor](screenshots/kernel_monitor.png)
+
 
 ---
 
 ### 4. Container Logging Output
 Demonstrates per-container logs being written and stored.
-![Logging Output](screenshots/logging_output.png)
+
 
 ---
 
 ### 5. CPU vs IO Scheduling Behavior
 Shows difference in CPU usage between CPU-bound and IO-bound workloads.
-![CPU vs IO](screenshots/cpu_vs_io.png)
+
 
 ---
 
 ### 6. CPU Hog Execution Logs
 Displays continuous CPU workload execution inside container.
-![CPU Hog Logs](screenshots/cpu_hog_logs.png)
+
 
 ---
 
 ### 7. System Cleanup & Termination
 Shows proper shutdown with no zombie processes.
-![Cleanup](screenshots/cleanup.png)
+
 
 ---
 
 ### 8. Performance Analysis Graph
 Illustrates relationship between connections and load time.
-![Performance Graph](screenshots/performance_graph.png)
+
 
 ---
 
 ### 9. Supervisor Request Handling
 Shows supervisor receiving and processing multiple requests.
-![Supervisor Requests](screenshots/supervisor_requests.png)
+
 
 ---
 
 ### 10. Nice Values Scheduling (Priority Control)
 Demonstrates scheduling priority using nice values.
-![Nice Values](screenshots/nice_values.png)
+
 
 
 
