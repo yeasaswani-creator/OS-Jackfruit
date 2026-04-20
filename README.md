@@ -1,111 +1,159 @@
-# Multi-Container Runtime
 
-A lightweight Linux container runtime in C with a long-running supervisor and a kernel-space memory monitor.
+## Team Information
 
-Read [`project-guide.md`](project-guide.md) for the full project specification.
+- **Name:** SANGADALA YEASASWANI  
+  **SRN:** PES2UG24CS441  
+
+- **Name:** SHAYNA ZAIDI GUPTA  
+  **SRN:** PES2UG24CS465  
 
 ---
 
-## Getting Started
+##  System Overview
 
-### 1. Fork the Repository
+This project implements a lightweight container runtime for Linux systems, developed in C, with the objective of exploring key operating system concepts such as process isolation, scheduling, and kernel-level monitoring.
 
-1. Go to [github.com/shivangjhalani/OS-Jackfruit](https://github.com/shivangjhalani/OS-Jackfruit)
-2. Click **Fork** (top-right)
-3. Clone your fork:
+The system enables execution of multiple containers in parallel using Linux namespaces, ensuring isolated process environments. A persistent supervisor process orchestrates container lifecycle operations, including creation, execution, monitoring, and termination.
 
-```bash
-git clone https://github.com/<your-username>/OS-Jackfruit.git
-cd OS-Jackfruit
-```
+Additionally, the design integrates both user-space and kernel-space components, providing visibility into system behavior and resource usage.
 
-### 2. Set Up Your VM
+---
 
-You need an **Ubuntu 22.04 or 24.04** VM with **Secure Boot OFF**. WSL will not work.
+##  Core Features
 
-Install dependencies:
+### . Namespace-Based Isolation
+Containers run in independent execution environments with separate process trees and filesystem views.
 
-```bash
-sudo apt update
-sudo apt install -y build-essential linux-headers-$(uname -r)
-```
+### . Supervisor-Based Control
+A central supervisor manages all container operations and maintains system coordination.
 
-### 3. Run the Environment Check
+### . Per-Container Logging System
+Each container writes output to its own log file for monitoring and debugging.
 
-```bash
-cd boilerplate
-chmod +x environment-check.sh
-sudo ./environment-check.sh
-```
+### . Kernel-Level Monitoring (LKM)
+A Loadable Kernel Module tracks memory usage and enforces limits.
 
-Fix any issues reported before moving on.
+### . Workload Simulation
+Includes CPU-bound (`cpu_hog`) and I/O-bound (`io_pulse`) workloads for scheduling analysis.
 
-### 4. Prepare the Root Filesystem
+### . Complete Lifecycle Management
+Handles container startup, execution, and cleanup without leaving residual processes.
 
-```bash
-mkdir rootfs-base
-wget https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-tar -xzf alpine-minirootfs-3.20.3-x86_64.tar.gz -C rootfs-base
+---
 
-# Make one writable copy per container you plan to run
-cp -a ./rootfs-base ./rootfs-alpha
-cp -a ./rootfs-base ./rootfs-beta
-```
+## ⚙️ Build, Load & Execution Steps
 
-Do not commit `rootfs-base/` or `rootfs-*` directories to your repository.
-
-### 5. Understand the Boilerplate
-
-The `boilerplate/` folder contains starter files:
-
-| File                   | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `engine.c`             | User-space runtime and supervisor skeleton          |
-| `monitor.c`            | Kernel module skeleton                              |
-| `monitor_ioctl.h`      | Shared ioctl command definitions                    |
-| `Makefile`             | Build targets for both user-space and kernel module |
-| `cpu_hog.c`            | CPU-bound test workload                             |
-| `io_pulse.c`           | I/O-bound test workload                             |
-| `memory_hog.c`         | Memory-consuming test workload                      |
-| `environment-check.sh` | VM environment preflight check                      |
-
-Use these as your starting point. You are free to restructure the repository however you want — the submission requirements are listed in the project guide.
-
-### 6. Build and Verify
-
+### 1. Build the Project
 ```bash
 cd boilerplate
 make
 ```
 
-If this compiles without errors, your environment is ready.
-
-### 7. GitHub Actions Smoke Check
-
-Your fork will inherit a minimal GitHub Actions workflow from this repository.
-
-That workflow only performs CI-safe checks:
-
-- `make -C boilerplate ci`
-- user-space binary compilation (`engine`, `memory_hog`, `cpu_hog`, `io_pulse`)
-- `./boilerplate/engine` with no arguments must print usage and exit with a non-zero status
-
-The CI-safe build command is:
-
+### 2. Load Kernel Module
 ```bash
-make -C boilerplate ci
+sudo insmod monitor.ko
+ls -l /dev/container_monitor
 ```
 
-This smoke check does not test kernel-module loading, supervisor runtime behavior, or container execution.
+### 3. Start Supervisor
+```bash
+sudo ./engine supervisor ./rootfs-base
+```
+
+### 4. Prepare Containers
+```bash
+cp -a ./rootfs-base ./rootfs-alpha
+cp -a ./rootfs-base ./rootfs-beta
+```
+
+### 5. Start Containers
+```bash
+sudo ./engine start alpha ./rootfs-alpha /cpu_hog
+sudo ./engine start beta ./rootfs-beta /io_pulse
+```
+
+### 6. Inspect Containers
+```bash
+sudo ./engine ps
+sudo ./engine logs alpha
+```
+
+### 7. Stop Containers & Cleanup
+```bash
+sudo ./engine stop alpha
+sudo ./engine stop beta
+sudo rmmod monitor
+```
+## Experimental Demonstration
+
+### 1. Supervisor Startup & Container Initialization
+![supervisor_terminal_output](https://github.com/user-attachments/assets/bb6c1773-3ce9-4591-8268-d6945597a2ea)
+Shows the supervisor process launching and starting multiple containers.
 
 ---
 
-## What to Do Next
+### 2. Container Listing (CLI Output)
+![container_listing](https://github.com/user-attachments/assets/4997ef6f-1062-4845-a36e-3d846cec5e4e)
 
-Read [`project-guide.md`](project-guide.md) end to end. It contains:
+Displays container IDs and states using the `engine ps` command.
 
-- The six implementation tasks (multi-container runtime, CLI, logging, kernel monitor, scheduling experiments, cleanup)
-- The engineering analysis you must write
-- The exact submission requirements, including what your `README.md` must contain (screenshots, analysis, design decisions)
 
-Your fork's `README.md` should be replaced with your own project documentation as described in the submission package section of the project guide. (As in get rid of all the above content and replace with your README.md)
+---
+
+### 3. Kernel-Level Monitoring Output
+![kernel_monitor](https://github.com/user-attachments/assets/5cd398bc-d863-40b8-91d6-606d4f8aae81)
+
+Shows kernel module logs tracking processes and memory usage.
+
+
+---
+
+### 4. Container Logging Output
+![logging_out](https://github.com/user-attachments/assets/1920f426-eee7-4f86-8685-ba248da8d097)
+
+Demonstrates per-container logs being written and stored.
+
+
+---
+
+### 5. CPU vs IO Scheduling Behavior
+![cpu_vs_io](https://github.com/user-attachments/assets/7365b036-c43e-439b-a711-dd20bdb350a6)
+
+Shows difference in CPU usage between CPU-bound and IO-bound workloads.
+
+
+---
+
+### 6. CPU Hog Execution Logs
+![logging_out](https://github.com/user-attachments/assets/92a17ac3-66c6-47f2-af2d-7491d6cca9ea)
+
+Displays continuous CPU workload execution inside container.
+
+---
+
+### 7. System Cleanup & Termination
+![cleanup_logs](https://github.com/user-attachments/assets/e55b32cf-6843-46ac-bcb8-7224cf3e53fc)
+
+Shows proper shutdown with no zombie processes.
+
+
+---
+
+### 8. Supervisor Request Handling
+![supervisor_requests](https://github.com/user-attachments/assets/b01c2c05-19d6-41bc-801e-bd20e5c7d73f)
+
+Shows supervisor receiving and processing multiple requests.
+
+
+---
+
+### 9. Nice Values Scheduling (Priority Control)
+![nice_values png](https://github.com/user-attachments/assets/2a8dc82c-9e6c-4733-ba6a-a156fba38504)
+
+Demonstrates scheduling priority using nice values.
+
+
+
+
+
+
