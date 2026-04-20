@@ -390,25 +390,33 @@ void *logging_thread(void *arg)
 int child_fn(void *arg)
 {
     child_config_t *cfg = (child_config_t *)arg;
+
     if (sethostname(cfg->id, strlen(cfg->id)) != 0) {
-    perror("sethostname failed");
+        perror("sethostname failed");
     }
+
     if (chroot(cfg->rootfs) != 0) {
         perror("chroot failed");
         return 1;
     }
+
     if (chdir("/") != 0) {
         perror("chdir failed");
         return 1;
     }
+
     if (mount("proc", "/proc", "proc", 0, NULL) != 0) {
         perror("mount failed");
         return 1;
     }
+
     dup2(cfg->log_write_fd, STDOUT_FILENO);
     dup2(cfg->log_write_fd, STDERR_FILENO);
     close(cfg->log_write_fd);
-    execl("./memory_hog", "memory_hog", "20", "1000", NULL);
+
+    // 🔥 CRITICAL FIX — use execl with absolute path
+    execl(cfg->command, cfg->command, NULL);
+
     perror("exec failed");
     return 1;
 }
@@ -420,6 +428,11 @@ int register_with_monitor(int monitor_fd,
                           unsigned long hard_limit_bytes)
 {
     struct monitor_request req;
+
+
+int fd = open("/dev/container_monitor", O_WRONLY);
+write(fd, &req, sizeof(req));
+close(fd);
 
     memset(&req, 0, sizeof(req));
     req.pid = host_pid;
@@ -634,62 +647,81 @@ while (1) {
     ssize_t n = read(client_fd, &req, sizeof(req));
 
     switch (req.kind) {
+case CMD_START: {
+    printf("Starting container %s\n", req.container_id);
 
-    case CMD_START: {
-        printf("Starting container %s\n", req.container_id);
+    int pipefd[2];
+    pipe(pipefd);
 
-        int pipefd[2];
-        pipe(pipefd);
+    pid_t pid = fork();
 
-        pid_t pid = fork();
+    if (pid == 0) {
+        // CHILD
+        close(pipefd[0]);
 
-        if (pid == 0) {
-            // CHILD
-            close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
 
-            dup2(pipefd[1], STDOUT_FILENO);
-            dup2(pipefd[1], STDERR_FILENO);
-            close(pipefd[1]);
+        // execute command
+        execl(req.command, req.command, NULL);
 
-            execl("/memory_hog", "memory_hog", "--soft-mib", "20", "--hard-mib", "100", NULL);
+        perror("exec failed");
+        exit(1);
+    } else {
+        // PARENT
+        close(pipefd[1]);
 
-            perror("exec failed");
-            exit(1);
-        } else {
-            // PARENT
-            close(pipefd[1]);
+        char buffer[256];
+        int n;
 
-            char buffer[256];
-            int n;
-char path[256];
-snprintf(path, sizeof(path), "logs/%s.log", req.container_id);
+        char path[256];
+        snprintf(path, sizeof(path), "logs/%s.log", req.container_id);
 
-FILE *f = fopen(path, "a");
-if (!f) {
-    perror("fopen");
-    return;
-}
+        FILE *f = fopen(path, "a");
+        if (!f) {
+            perror("fopen");
+            return;
+        }
 
-while ((n = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+        while ((n = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+            fwrite(buffer, 1, n, f);
+            fflush(f);
+        }
 
-    log_item_t item;
-    memset(&item, 0, sizeof(item));
-
-    strncpy(item.container_id, req.container_id, CONTAINER_ID_LEN);
-    memcpy(item.data, buffer, n);
-    item.length = n;
-
-    bounded_buffer_push(&log_buffer, &item);
-
-    // ✅ ADD THIS (file logging)
-    fwrite(buffer, 1, n, f);
-    fflush(f);
-}
-
-fclose(f);        }
-        break;
+        fclose(f);
+        close(pipefd[0]);
     }
 
+    break;
+}
+case CMD_RUN: {
+    printf("Running command in container %s\n", req.container_id);
+
+    pid_t pid = fork();
+
+    if (pid == 0) {
+        // CHILD
+
+        if (chroot(req.rootfs) != 0) {
+            perror("chroot failed");
+            exit(1);
+        }
+
+        chdir("/");
+
+        char *args[] = {"/bin/sh", "-c", req.command, NULL};
+        execvp("/bin/sh", args);
+
+        perror("exec failed");
+        exit(1);
+    } else {
+        // PARENT
+        wait(NULL);
+    }
+
+    break;
+}
     case CMD_STOP:
         printf("Stopping container %s\n", req.container_id);
         break;

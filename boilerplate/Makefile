@@ -1,4 +1,4 @@
-obj-m += monitor.o
+obj-m += container_monitor.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
